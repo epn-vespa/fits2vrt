@@ -497,10 +497,10 @@ def main( argv = None ):
         ctype2a = 'NEPY-'
     else:
         print ("Warning: Target %s not supported" % (target))
-        #ctype1 = 'LN---'
-        #ctype1a = 'PX---'
-        #ctype2 = 'LT---'
-        #ctype2a = 'PY---'
+        #ctype1 = 'BLN---'
+        #ctype1a = 'BPX---'
+        #ctype2 = 'BLT---'
+        #ctype2a = 'BPY---'
         #sys.exit(1)
 
     # Setting units (not mandatory)
