@@ -232,7 +232,7 @@ def main( argv = None ):
                     centLat = hSRS.GetProjParm('standard_parallel_1')
                     centLon = hSRS.GetProjParm('central_meridian')
 
-                #Transverse Mercator maybe not supported in FITS....?
+                #Transverse Mercator definitely not supported in FITS.
                 #if EQUAL(mapProjection,"Transverse_Mercator"):
                 #    mapProjection = "MER"
                 #    centLat = hSRS.GetProjParm('standard_parallel_1')
@@ -248,7 +248,7 @@ def main( argv = None ):
                     centLat = hSRS.GetProjParm('standard_parallel_1')
                     centLon = hSRS.GetProjParm('central_meridian')
 
-                #Mercator NOT supported in FITS....?
+                # Only Mercator is supported in FITS
                 if (EQUAL(mapProjection,"Mercator_1SP") or EQUAL(mapProjection,"Mercator")):
                     mapProjection = "MER" # a guess
                     centLat = hSRS.GetProjParm('standard_parallel_1')
@@ -386,7 +386,7 @@ def main( argv = None ):
 #/* - Alternative loop over bands or lines is below for reading but      */
 #/* - not writing. Writing a band/line at a time in Astropy seems tricky */
 #/* ==================================================================== */
-    raster_data = inDataset.ReadAsArray
+    raster_data = inDataset.ReadAsArray()
         
 #   Grab band information from Band 1 - here assumes it works for all bands
 #   - for n bands, looping over all bands and getting metadata is shown below
@@ -452,42 +452,42 @@ def main( argv = None ):
         print "FITS type: %s" % str(fbittype)
 
     # CTYPE definition
-    if EQUAL(target, "MERCURY"):
+    if EQUAL(target, "Mercury"):
         ctype1 = 'MELN-'
         ctype1a = 'MEPX-'
         ctype2 = 'MELT-'
         ctype2a = 'MEPY-'
-    elif EQUAL(target, "VENUS"):
+    elif EQUAL(target, "Venus"):
         ctype1 = 'VELN-'
         ctype1a = 'VEPX-'
         ctype2 = 'VELT-'
         ctype2a = 'VEPY-'
-    elif EQUAL(target, "MARS"):
+    elif EQUAL(target, "Mars"):
         ctype1 = 'MALN-'
         ctype1a = 'MAPX-'
         ctype2 = 'MALT-'
         ctype2a = 'MAPY-'
-    elif EQUAL(target, "JUPITER"):
+    elif EQUAL(target, "Jupiter"):
         ctype1 = 'JULN-'
         ctype1a = 'JUPX-'
         ctype2 = 'JULT-'
         ctype2a = 'JUPY-'
-    elif EQUAL(target, "SATURN"):
+    elif EQUAL(target, "Saturn"):
         ctype1 = 'SALN-'
         ctype1a = 'SAPX-'
         ctype2 = 'SALT-'
         ctype2a = 'SAPY-'
-    elif EQUAL(target, "URANUS"):
+    elif EQUAL(target, "Uranus"):
         ctype1 = 'URLN-'
         ctype1a = 'URPX-'
         ctype2 = 'URLT-'
         ctype2a = 'URPY-'
-    elif EQUAL(target, "NEPTUNE"):
+    elif EQUAL(target, "Neptune"):
         ctype1 = 'NELN-'
         ctype1a = 'NEPX-'
         ctype2 = 'NELT-'
         ctype2a = 'NEPY-'
-    elif:
+    else:
         ctype1 = 'LN---'
         ctype1a = 'PX---'
         ctype2 = 'LT---'
@@ -517,26 +517,26 @@ def main( argv = None ):
     tofits.header['CD1_1a']  = adfGeoTransform[1]
     tofits.header['CD1_2a']  = adfGeoTransform[2]
     tofits.header['CD2_1a']  = adfGeoTransform[4]
-    tofits.header['CD2_2a']  = adfGeoTransform[5]
+    tofits.header['CD2_2a']  = adfGeoTransform[5] # FITS files are not flipped by GDAL
     tofits.header['CRVAL1a'] = UpperLeftCornerX # reference point in meters (alternate WCS)
     tofits.header['CRVAL2a'] = UpperLeftCornerY # reference point in meters (alternate WCS) 
     tofits.header['CRPIX1a'] = 0.5 # in FITS 1 is the center of the first pixel
-    tofits.header['CRPIX2a'] = inDataset.RasterYSize + 0.5 # Is the FITS flipped or not? TO CHECK
-            
+    tofits.header['CRPIX2a'] = 0.5 # FITS flipped            
+    #tofits.header['CRPIX2a'] = inDataset.RasterYSize + 0.5 # FITS not flipped            
     if ((centLon < 0) and force360):
        centLon = centLon + 360
     # CRVAL1   : centLon  # not sure this is correct
     # CRVAL2   : centLat  # not sure this is correct
     # CRPIX1   : need to calc
     # CRPIX2   : need to calc
-    tofits.header['CD1_1']  = adfGeoTransform[1] * cfactor
-    tofits.header['CD1_2']  = adfGeoTransform[2] * cfactor
-    tofits.header['CD2_1']  = adfGeoTransform[4] * cfactor
-    tofits.header['CD2_2']  = adfGeoTransform[5] * cfactor
+    tofits.header['CD1_1']  = adfGeoTransform[1] / cfactor
+    tofits.header['CD1_2']  = adfGeoTransform[2] / cfactor
+    tofits.header['CD2_1']  = adfGeoTransform[4] / cfactor
+    tofits.header['CD2_2']  = adfGeoTransform[5] / cfactor
     tofits.header['CRVAL1'] = centLon #not sure this is correct
     tofits.header['CRVAL2'] = centLat #not sure this is correct
-    tofits.header['CRPIX1'] = 0 #need to calc
-    tofits.header['CRPIX2'] = 0 #need to calc
+    tofits.header['CRPIX1'] = 0.5 + inDataset.RasterXSize/2.0 #need to calc it depends on projection
+    tofits.header['CRPIX2'] = 0.5 + inDataset.RasterYSize/2.0 #need to calc it depends on projection
 
 
 # Start block comment for read/write 1 band a time    
