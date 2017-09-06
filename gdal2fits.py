@@ -64,6 +64,7 @@ def Usage(theApp):
     print( '   optional: to computer min and maximum for FITS -computeMinMax')
     print( '   optional: to override the center Longitude, send -centerLon 180')
     print( '   optional: to set or override scaler and offset send -base 17374000 and/or -multiplier 0.5')
+    print( '   optional: to set or override target name -target MARS')
     sys.exit(1)
 
 
@@ -96,6 +97,7 @@ def main( argv = None ):
     force360 = False
     base = None
     multiplier = None
+    target = None
 
     if argv is None:
         argv = sys.argv
@@ -134,6 +136,9 @@ def main( argv = None ):
         elif EQUAL(argv[i], "-multiplier"):
             i = i + 1
             multiplier = float(argv[i])
+        elif EQUAL(argv[i], "-target"):
+            i = i + 1
+            target = argv[i]
         elif argv[i][0] == '-':
             return Usage(argv[0])
         elif inFilename is None:
@@ -208,10 +213,13 @@ def main( argv = None ):
 
             #print( "Coordinate System is:\n%s" % pszPrettyWkt )
             mapProjection = "None"
-            #Extract projection information
-            target = hSRS.GetAttrValue("DATUM",0)
-            target = target.replace("D_","").replace("_2000","").replace("GCS_","")
 
+            #FITS needs very specific names so check to see user sent
+            if target is None:
+              target = hSRS.GetAttrValue("DATUM",0)
+              target = target.replace("D_","").replace("_2000","").replace("GCS_","")
+
+            #Extract projection information
             semiMajor = hSRS.GetSemiMajor()
             cfactor = semiMajor * math.pi / 180.0 
             semiMinor = hSRS.GetSemiMinor()
@@ -361,8 +369,8 @@ def main( argv = None ):
                               inDataset.RasterYSize/2.0 );
 
     #Get bounds -- Do not need
-    #ulx = GDALGetLon( inDataset, hTransform, 0.0, 0.0 );
-    #uly = GDALGetLat( inDataset, hTransform, 0.0, 0.0 );
+    ulx = GDALGetLon( inDataset, hTransform, 0.0, 0.0 );
+    uly = GDALGetLat( inDataset, hTransform, 0.0, 0.0 );
     #lrx = GDALGetLon( inDataset, hTransform, inDataset.RasterXSize, \
     #                      inDataset.RasterYSize );
     #lry = GDALGetLat( inDataset, hTransform, inDataset.RasterXSize, \
@@ -448,8 +456,8 @@ def main( argv = None ):
         sys.exit(1)
 
     if debug:
-        print "GDAL type: %s" % gdal.GetDataTypeName(iBand.DataType)
-        print "FITS type: %s" % str(fbittype)
+        print ("GDAL type: %s" % gdal.GetDataTypeName(iBand.DataType))
+        print ("FITS type: %s" % str(fbittype))
 
     # CTYPE definition
     if EQUAL(target, "MERCURY"):
@@ -487,11 +495,13 @@ def main( argv = None ):
         ctype1a = 'NEPX-'
         ctype2 = 'NELT-'
         ctype2a = 'NEPY-'
-    elif:
+    else:
+        print ("Warning: Target %s not supported" % (target))
         ctype1 = 'LN---'
         ctype1a = 'PX---'
         ctype2 = 'LT---'
         ctype2a = 'PY---'
+        #sys.exit(1)
 
     # Setting units (not mandatory)
     cunit = 'deg    '
@@ -653,9 +663,8 @@ def main( argv = None ):
     if debug and flip:
         print( "writing flipped image (top/bottom)" )
     elif debug:
-        print 'writing FITS'
+        print ("writing FITS")
   
-
     tofits.writeto(dst_fits, clobber=True)         
 
     tofits = None
