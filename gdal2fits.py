@@ -37,12 +37,12 @@ import sys
 import math
 import os
 import os.path
-import re
-import numpy as np
+#import re
+#import numpy as np
 
-import astropy
+#import astropy
 from astropy.io import fits
-from astropy import wcs
+#from astropy import wcs
 
 try:
     from osgeo import gdal
@@ -381,12 +381,12 @@ def main( argv = None ):
        centLon = centerLon
  
     #Calculate Simple Cylindrical X,Y in meters from bounds if not projected.
-    #Needs more testing.                     
+    #Needs more testing. 
     if (inProjection[0:6] == "GEOGCS"):
         #note that: mres = adfGeoTransform[1] * (semiMajor * math.pi / 180.0)
         UpperLeftCornerX = (ulx - centLon) * cfactor
         UpperLeftCornerY = uly * cfactor
-        
+
 
 #/* ==================================================================== */
 #/* Initialize output FITS header using all bands loaded in numpy        */
@@ -395,7 +395,7 @@ def main( argv = None ):
 #/* - not writing. Writing a band/line at a time in Astropy seems tricky */
 #/* ==================================================================== */
     raster_data = inDataset.ReadAsArray()
-        
+
 #   Grab band information from Band 1 - here assumes it works for all bands
 #   - for n bands, looping over all bands and getting metadata is shown below
     iBand = inDataset.GetRasterBand(1)
@@ -497,10 +497,10 @@ def main( argv = None ):
         ctype2a = 'NEPY-'
     else:
         print ("Warning: Target %s not supported" % (target))
-        #ctype1 = 'BLN---'
-        #ctype1a = 'BPX---'
-        #ctype2 = 'BLT---'
-        #ctype2a = 'BPY---'
+        ctype1 = 'LN---'
+        ctype1a = 'PX---'
+        ctype2 = 'LT---'
+        ctype2a = 'PY---'
         #sys.exit(1)
 
     # Setting units (not mandatory)
@@ -531,7 +531,7 @@ def main( argv = None ):
     tofits.header['CRVAL1a'] = UpperLeftCornerX # reference point in meters (alternate WCS)
     tofits.header['CRVAL2a'] = UpperLeftCornerY # reference point in meters (alternate WCS) 
     tofits.header['CRPIX1a'] = 0.5 # in FITS 1 is the center of the first pixel
-    tofits.header['CRPIX2a'] = 0.5 # FITS flipped            
+    tofits.header['CRPIX2a'] = 0.5 # FITS flipped
     #tofits.header['CRPIX2a'] = inDataset.RasterYSize + 0.5 # FITS not flipped            
     if ((centLon < 0) and force360):
        centLon = centLon + 360
@@ -549,7 +549,7 @@ def main( argv = None ):
     tofits.header['CRPIX2'] = 0.5 + inDataset.RasterYSize/2.0 #need to calc it depends on projection
 
 
-# Start block comment for read/write 1 band a time    
+# Start block comment for read/write 1 band a time
 # #/* ==================================================================== */
 # #/*      Loop over bands to write out                                    */
 # #/* ==================================================================== */
