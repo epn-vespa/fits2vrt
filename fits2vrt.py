@@ -1,7 +1,7 @@
 """
 This file is part of fits2vrt
 A FITS to GDAL Virtual Header conversion tool
-17/08/2017
+31/01/2018
 Authors : Chiara Marmo (chiara.marmo@u-psud.fr)
           Trent Hare (thare@usgs.gov)
 Copyright : CNRS, Universite Paris-Sud - USGS
@@ -10,10 +10,8 @@ Copyright : CNRS, Universite Paris-Sud - USGS
 import os
 import os.path
 import re
-#import astropy
 from astropy.io import fits
 from astropy import wcs
-#import numpy as np
 from osgeo import gdal
 from osgeo import osr
 
@@ -24,16 +22,17 @@ class fitskeys(object):
 
     # Image object initialization #
     def __init__(self,imname):
+
+        # the image name
         self.__name = imname
+
         if os.path.isfile(imname):
             hdulist = fits.open(imname)
+
+            # FITS header
             self.__header = hdulist[0].header
-            #not sure what this is (? from Trent)
-            #irs.SetProjection(gdalproj)
-            lenheader = (len(hdulist[0].header)+1)*80
-            [blocks,remainder] = divmod(lenheader,2880)
-            self.__offset = 2880 * (blocks+1)
-            hdulist.close()
+
+            # the WCS structure
             self.__wcs = wcs.WCS(self.__header)
 
             # alternate linear WCS
@@ -47,14 +46,26 @@ class fitskeys(object):
                         altkey = key[alt.end(0):]
                         self.__altkey = altkey
 
+            # byte offset to the raster (points into FITS image)
+            lenheader = (len(hdulist[0].header)+1)*80
+            [blocks,remainder] = divmod(lenheader,2880)
+            self.__offset = 2880 * (blocks+1)
 
-    # FITS metadata conversion to GDAL VRT Header
+            hdulist.close()
+
+        else:
+            print('ERROR!! Cannot find image {0:s}!\n'.format(imname))
+
+    """
+    The FITS metadata conversion to GDAL VRT Header
+    """
     def fits2vrt(self):
-        #src_ds = gdal.Open(self.__name)
+
+        # Virtual header initialization
         driver = gdal.GetDriverByName('vrt')
         vrtname, fitsext = os.path.splitext(self.__name)
 
-        # Defining dataset dimensions
+        # Dataset dimensions
         dimx = self.__header['NAXIS1']
         dimy = self.__header['NAXIS2']
         if (self.__header['NAXIS'] > 2):
@@ -62,20 +73,26 @@ class fitskeys(object):
         else:
             dimz = 1
 
-        # Defining Scale and Offset
-        #bzero = self.__header['BZERO']
-        #bscale = self.__header['BSCALE']
+        # Scale and Offset
+        # bzero = self.__header['BZERO']
+        # bscale = self.__header['BSCALE']
+        # Set to 0.0 and 1.0 waiting for better implementation
         bzero = 0.0
         bscale = 1.0
 
-        # Defining dataset bit type
+        """
+        # Dataset bit type
+        # will define
+        # - nodata: nodata value if not defined elsewhere
+        # - pxoffset: times offset to point to FITS raster
         # Following http://www.gdal.org/gdal_8h.html#a22e22ce0a55036a96f652765793fb7a4 (GDAL)
         # and https://heasarc.gsfc.nasa.gov/docs/software/fitsio/c/c_user/node20.html (FITS)
+        """
+
         fbittype = self.__header['BITPIX']
         if (fbittype == 8):
             gbittype = gdal.GDT_Byte
             nodata = 0
-            #pxoffset needed for raw VRT type (points into FITS image)
             pxoffset = 1
         elif (fbittype == 16):
             pxoffset = 2
@@ -103,14 +120,14 @@ class fitskeys(object):
             print (fbittype)
             return 'fail' # need better error text or method
 
-        # Addressing FITS as raw raster: this will work without CFITSIO GDAL dependence.
-        dst_ds = driver.Create( vrtname + '.vrt', dimx, dimy, 0 )
-
         # The next lines only work if gdal has cfitsio properly configured
         #src_ds = gdal.Open(self.__name)
         #dst_ds = driver.CreateCopy( vrtname + '.vrt', src_ds, 0)
 
-        #lineoffset only needed for raw VRT type
+        # Addressing FITS as raw raster: this will work without CFITSIO GDAL dependence.
+        dst_ds = driver.Create( vrtname + '.vrt', dimx, dimy, 0 )
+
+        # lineoffset only needed for raw VRT type
         lnoffset = dimx * pxoffset
         src_filename_opt = 'SourceFileName=' + self.__name
         im_offset_opt = 'ImageOffset=' + str(self.__offset)
@@ -123,7 +140,7 @@ class fitskeys(object):
            im_offset_opt,
            px_offset_opt,
            ln_offset_opt,
-           'ByteOrder=MSB' #FITS is always MSB
+           'ByteOrder=MSB' # FITS is always MSB
         ]
 
         result = dst_ds.AddBand( gbittype, options )
@@ -162,21 +179,20 @@ class fitskeys(object):
             geot1 = header['CD1_1'+altkey]
             geot2 = header['CD1_2'+altkey]
             geot4 = header['CD2_1'+altkey]
-            geot5 = header['CD2_2'+altkey]
+            geot5 = header['CD2_2'+altkey] # FITS is upside-down
 
             # We are reading FITS rasters as raw matrix
-            # not sure yet on how to use non diagonal terms
-            topleftx = header['CRVAL1'+altkey] - geot1 * (header['CRPIX1'+altkey]-0.5) #- geot2 * (header['CRPIX2'+altkey]-0.5)
-            toplefty = header['CRVAL2'+altkey] - geot5 * (header['CRPIX2'+altkey]-0.5) #- geot4 * (header['CRPIX1'+altkey]-0.5)
+            topleftx = header['CRVAL1'+altkey] - geot1 * (header['CRPIX1'+altkey]-0.5)
+            toplefty = header['CRVAL2'+altkey] - geot5 * (header['CRPIX2'+altkey]-0.5)
             dst_ds.SetGeoTransform( [ topleftx, geot1, geot2, toplefty, geot4, geot5] )
         except:
             print ("WARNING! No linear keyword available, geotransformation matrix will not be calculated.")
 
-        # Defining projection type
-        # Following http://www.gdal.org/ogr__srs__api_8h.html (GDAL)
-        # and http://www.aanda.org/component/article?access=bibcode&bibcode=&bibcode=2002A%2526A...395.1077CFUL (FITS)
+
+        # GDAL Spatial Coordinate System initialization
 
         srs = osr.SpatialReference()
+
         try:
             # Get radius values (maybe add an external method (e.g. string or URI)
             # new FITS keywords A_RADIUS, C_RADIUS 
@@ -195,11 +211,14 @@ class fitskeys(object):
                         ']], PRIMEM["Reference_Meridian",0],' + \
                         'UNIT["degree",0.0174532925199433]]'
 
-            #print srsGeoCS
             srs.ImportFromWkt(srsGeoCS)
+
         except:
             print ("WARNING! No Radii keyword available, metadata will not contain DATUM information.")
 
+        # Defining projection type
+        # Following http://www.gdal.org/ogr__srs__api_8h.html (GDAL)
+        # and http://www.aanda.org/component/article?access=bibcode&bibcode=&bibcode=2002A%2526A...395.1077CFUL (FITS)
 
         wcsproj = (self.__header['CTYPE1'])[-3:]
         # Sinusoidal / SFL projection
@@ -209,28 +228,20 @@ class fitskeys(object):
             clong = self.__header['CRVAL1']
             srs.SetProjParm('longitude_of_center',clong)
 
-        # Lambert Azimuthal Equal Area / ZEA projection
-        elif ( wcsproj == 'ZEA' ):
-            gdalproj = 'Lambert_Azimuthal_Equal_Area'
+	# Mercator, Oblique (Hotine) Mercator, Transverse Mercator
+        # Mercator / MER projection
+        elif ( wcsproj == 'MER' ): 
+            gdalproj = 'Mercator'
             srs.SetProjection(gdalproj)
-            clong = self.__header['CRVAL1']
-            srs.SetProjParm('longitude_of_center',clong)
-            #clat = self.__header['XXXXX']
-            #srs.SetProjParm('latitude_of_center',clat)
-
-        # Lambert Conformal Conic 1SP / COO projection
-        elif ( wcsproj == 'COO' ):
-            gdalproj = 'Lambert_Conformal_Conic_1SP'
-            srs.SetProjection(gdalproj)
-            clong = self.__header['CRVAL1']
-            srs.SetProjParm('longitude_of_center',clong)
-            #clat = self.__header['XXXXX']
-            #srs.SetProjParm('latitude_of_center',clat)
-            scale = self.__header['XXXXX']
-            if scale is not None:
-                srs.SetProjParm('scale_factor',scale)
-            else: #set default of 1.0
-                srs.SetProjParm('scale_factor',1.0)
+            cmer = self.__header['CRVAL1']
+            srs.SetProjParm('central_meridian',cmer)
+            olat = self.__header['CRVAL2']
+            srs.SetProjParm('latitude_of_origin',olat)
+            # Is scale factor a reference point or a ratio between pixel scales?
+            if olat is not None:
+                srs.SetProjParm('scale_factor',olat)
+            else: #set default of 0.0
+                srs.SetProjParm('scale_factor',0.0)
 
         # Equirectangular / CAR projection
         elif ( wcsproj == 'CAR' ):
@@ -247,20 +258,28 @@ class fitskeys(object):
             olat = self.__header['CRVAL2']
             srs.SetProjParm('latitude_of_origin',olat)
 
-	#Here we are using Mercator not Transverse Mercator but
-	#There is a change FITS might be Hotine Merc or Trans Merc
-        # Mercator / MER projection
-        elif ( wcsproj == 'MER' ):  
-            gdalproj = 'Mercator'
+        # Lambert Azimuthal Equal Area / ZEA projection
+        elif ( wcsproj == 'ZEA' ):
+            gdalproj = 'Lambert_Azimuthal_Equal_Area'
             srs.SetProjection(gdalproj)
-            cmer = self.__header['CRVAL1']
-            srs.SetProjParm('central_meridian',cmer)
-            olat = self.__header['CRVAL2']
-            srs.SetProjParm('latitude_of_origin',olat)
-            if olat is not None:
-                srs.SetProjParm('scale_factor',olat)
-            else: #set default of 0.0
-                srs.SetProjParm('scale_factor',0.0)
+            clong = self.__header['CRVAL1']
+            srs.SetProjParm('longitude_of_center',clong)
+            clat = self.__header['CRVAL2']
+            srs.SetProjParm('latitude_of_center',clat)
+
+        # Lambert Conformal Conic 1SP / COO projection
+        elif ( wcsproj == 'COO' ):
+            gdalproj = 'Lambert_Conformal_Conic_1SP'
+            srs.SetProjection(gdalproj)
+            clong = self.__header['CRVAL1']
+            srs.SetProjParm('longitude_of_center',clong)
+            #clat = self.__header['XXXXX']
+            #srs.SetProjParm('latitude_of_center',clat)
+            scale = self.__header['XXXXX']
+            if scale is not None:
+                srs.SetProjParm('scale_factor',scale)
+            else: #set default of 1.0
+                srs.SetProjParm('scale_factor',1.0)
 
         # Orthographic / SIN projection
         elif ( wcsproj == 'SIN' ):
