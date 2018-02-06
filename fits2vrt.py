@@ -74,11 +74,8 @@ class fitskeys(object):
             dimz = 1
 
         # Scale and Offset
-        # bzero = self.__header['BZERO']
-        # bscale = self.__header['BSCALE']
-        # Set to 0.0 and 1.0 waiting for better implementation
-        bzero = 0.0
-        bscale = 1.0
+        bzero = self.__header['BZERO']
+        bscale = self.__header['BSCALE']
 
         """
         # Dataset bit type
@@ -130,21 +127,22 @@ class fitskeys(object):
         # lineoffset only needed for raw VRT type
         lnoffset = dimx * pxoffset
         src_filename_opt = 'SourceFileName=' + self.__name
-        im_offset_opt = 'ImageOffset=' + str(self.__offset)
         px_offset_opt = 'PixelOffset=' + str(pxoffset)
         ln_offset_opt = 'LineOffset=' + str(lnoffset)
-        options = [
-           'subClass=VRTRawRasterBand',
-           src_filename_opt,
-           'relativeToVRT=1',
-           im_offset_opt,
-           px_offset_opt,
-           ln_offset_opt,
-           'ByteOrder=MSB' # FITS is always MSB
-        ]
 
-        result = dst_ds.AddBand( gbittype, options )
-        if result != gdal.CE_None:
+        for i in range(dimz):
+          im_offset_opt = 'ImageOffset=' + str(self.__offset + i*dimx*dimy)
+          options = [
+            'subClass=VRTRawRasterBand',
+            src_filename_opt,
+            'relativeToVRT=1',
+            im_offset_opt,
+            px_offset_opt,
+            ln_offset_opt,
+            'ByteOrder=MSB' # FITS is always MSB
+          ]
+          result = dst_ds.AddBand( gbittype, options )
+          if result != gdal.CE_None:
             print ('AddBand() returned error code')
             return 'fail'
 
