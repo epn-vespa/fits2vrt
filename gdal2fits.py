@@ -497,10 +497,10 @@ def main( argv = None ):
         ctype2a = 'NEPY-'
     else:
         print ("Warning: Target %s not supported" % (target))
-        ctype1 = 'LN---'
-        ctype1a = 'PX---'
-        ctype2 = 'LT---'
-        ctype2a = 'PY---'
+        ctype1 = 'BLN--'
+        ctype1a = 'BPX--'
+        ctype2 = 'BLT--'
+        ctype2a = 'BPY--'
         #sys.exit(1)
 
     # Setting units (not mandatory)
@@ -510,6 +510,7 @@ def main( argv = None ):
     # this method can only output 1 band... Would rather init and
     # then add bands one at a time...
     tofits = fits.PrimaryHDU(raster_data)
+    tofits.header['BLANK'] = int(dfNoData)
     tofits.header['BZERO'] = iBand.GetOffset()
     tofits.header['BSCALE'] = iBand.GetScale()
     tofits.header['OBJECT'] = target
@@ -665,7 +666,7 @@ def main( argv = None ):
     elif debug:
         print ("writing FITS")
   
-    tofits.writeto(dst_fits, clobber=True)         
+    tofits.writeto(dst_fits, overwrite=True)
 
     tofits = None
     raster_data = None
