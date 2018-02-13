@@ -536,18 +536,15 @@ def main( argv = None ):
     #tofits.header['CRPIX2a'] = inDataset.RasterYSize + 0.5 # FITS not flipped            
     if ((centLon < 0) and force360):
        centLon = centLon + 360
-    # CRVAL1   : centLon  # not sure this is correct
-    # CRVAL2   : centLat  # not sure this is correct
-    # CRPIX1   : need to calc
-    # CRPIX2   : need to calc
+
     tofits.header['CD1_1']  = adfGeoTransform[1] / cfactor
     tofits.header['CD1_2']  = adfGeoTransform[2] / cfactor
     tofits.header['CD2_1']  = adfGeoTransform[4] / cfactor
     tofits.header['CD2_2']  = adfGeoTransform[5] / cfactor
-    tofits.header['CRVAL1'] = centLon #not sure this is correct
-    tofits.header['CRVAL2'] = centLat #not sure this is correct
-    tofits.header['CRPIX1'] = 0.5 + inDataset.RasterXSize/2.0 #need to calc it depends on projection
-    tofits.header['CRPIX2'] = 0.5 + inDataset.RasterYSize/2.0 #need to calc it depends on projection
+    tofits.header['CRVAL1'] = centLon
+    tofits.header['CRVAL2'] = centLat
+    tofits.header['CRPIX1'] = (centLon / mapres) - (UpperLeftCornerX / mres) + 0.5
+    tofits.header['CRPIX2'] = (UpperLeftCornerY / mres) - (centLat / mapres) + 0.5
 
 
 # Start block comment for read/write 1 band a time
