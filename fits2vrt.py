@@ -7,7 +7,7 @@ Authors : Chiara Marmo (chiara.marmo@u-psud.fr)
 Copyright : CNRS, Universite Paris-Sud - USGS
 """
 
-import os
+import os, math
 import os.path
 import re
 from astropy.io import fits
@@ -165,30 +165,7 @@ class fitskeys(object):
             print ("OBJECT keyword is missing")
             target = 'Undefined'
 
-
-        # Defining Geotransform: if linear WCS is defined 
-        # GeoTransform[1] = CD1_1a
-        # GeoTransform[2] = CD1_2a
-        # GeoTransform[4] = CD2_1a
-        # GeoTransform[5] = CD2_2a
-        # GeoTransform[0] and GeoTransform[3] (topleftx, toplefty) must be computed.
-        try:
-            altkey = self.__altkey
-            geot1 = header['CD1_1'+altkey]
-            geot2 = header['CD1_2'+altkey]
-            geot4 = header['CD2_1'+altkey]
-            geot5 = header['CD2_2'+altkey] # FITS is upside-down
-
-            # We are reading FITS rasters as raw matrix
-            topleftx = header['CRVAL1'+altkey] - geot1 * (header['CRPIX1'+altkey]-0.5)
-            toplefty = header['CRVAL2'+altkey] - geot5 * (header['CRPIX2'+altkey]-0.5)
-            dst_ds.SetGeoTransform( [ topleftx, geot1, geot2, toplefty, geot4, geot5] )
-        except:
-            print ("WARNING! No linear keyword available, geotransformation matrix will not be calculated.")
-
-
         # GDAL Spatial Coordinate System initialization
-
         srs = osr.SpatialReference()
 
         try:
@@ -213,6 +190,54 @@ class fitskeys(object):
 
         except:
             print ("WARNING! No Radii keyword available, metadata will not contain DATUM information.")
+
+        # Defining Geotransform: if linear WCS is defined 
+        # GeoTransform[1] = CD1_1a
+        # GeoTransform[2] = CD1_2a
+        # GeoTransform[4] = CD2_1a
+        # GeoTransform[5] = CD2_2a
+        # GeoTransform[0] and GeoTransform[3] (topleftx, toplefty) must be computed.
+        try:
+            altkey = self.__altkey
+            geot1 = header['CD1_1'+altkey]
+            geot2 = header['CD1_2'+altkey]
+            geot4 = header['CD2_1'+altkey]
+            geot5 = header['CD2_2'+altkey] # FITS is upside-down
+
+            # We are reading FITS rasters as raw matrix
+            topleftx = header['CRVAL1'+altkey] - geot1 * (header['CRPIX1'+altkey]-0.5)
+            toplefty = header['CRVAL2'+altkey] - geot5 * (header['CRPIX2'+altkey]-0.5)
+            dst_ds.SetGeoTransform( [ topleftx, geot1, geot2, toplefty, geot4, geot5] )
+        except:
+            print ("WARNING! No linear keyword available, geotransformation matrix will be calculated using equatorial radius.")
+            degtorad = math.pi / 180
+            radfac = degtorad * semiMajor
+            try:
+                degtorad = math.pi / 180
+                radfac = degtorad * semiMajor
+                try:
+                    geot1 = header['CD1_1'] * radfac
+                    geot2 = header['CD1_2'] * radfac
+                    geot4 = header['CD2_1'] * radfac
+                    geot5 = header['CD2_2'] * radfac # FITS is upside-down
+                except:
+                    print ("WARNING! No CD keywords, looking for CDELT.")
+                    try:
+                        geot1 = header['CDELT1'] * radfac
+                        geot2 = 0.
+                        geot4 = 0.
+                        geot5 = header['CDELT2'] * radfac # FITS is upside-down
+                    except:
+                        print ("WARNING! No WCS matrix available, geotransformation matrix cannot be calculated.")
+
+                # We are reading FITS rasters as raw matrix
+                topleftx = header['CRVAL1'] * radfac - geot1 * (header['CRPIX1']-0.5)
+                toplefty = header['CRVAL2'] * radfac - geot5 * (header['CRPIX2']-0.5)
+                dst_ds.SetGeoTransform( [ topleftx, geot1, geot2, toplefty, geot4, geot5] )
+
+            except:
+                print ("WARNING! No Radii keyword available, geotransformation matrix cannot be calculated.")
+
 
         # Defining projection type
         # Following http://www.gdal.org/ogr__srs__api_8h.html (GDAL)
