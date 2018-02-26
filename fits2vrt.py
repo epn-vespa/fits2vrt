@@ -131,7 +131,7 @@ class fitskeys(object):
         ln_offset_opt = 'LineOffset=' + str(lnoffset)
 
         for i in range(dimz):
-          im_offset_opt = 'ImageOffset=' + str(self.__offset + i*dimx*dimy)
+          im_offset_opt = 'ImageOffset=' + str(self.__offset + i*dimx*dimy*pxoffset)
           options = [
             'subClass=VRTRawRasterBand',
             src_filename_opt,
