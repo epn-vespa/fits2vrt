@@ -437,20 +437,34 @@ def main( argv = None ):
     #get the datatype
     if EQUAL(gdal.GetDataTypeName(iBand.DataType), "Float32"):
         fbittype = -32
+        if not dfNoData:
+            dfNoData = float('nan')
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "Float64"):
         fbittype = -64
+        if not dfNoData:
+            dfNoData = float('nan')
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "INT64"):
         fbittype = 64
+        if not dfNoData:
+            dfNoData = math.pow(2,fbittype)
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "INT32"):
         fbittype = 32
+        if not dfNoData:
+            dfNoData = math.pow(2,fbittype)
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "INT16"):
         fbittype = 16
+        if not dfNoData:
+            dfNoData = math.pow(2,fbittype)
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "UINT16"):
         fbittype = 16
         bzero = -32768
         bscale = 1
+        if not dfNoData:
+            dfNoData = math.pow(2,fbittype)
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "Byte"):
         fbittype = 8
+        if not dfNoData:
+            dfNoData = math.pow(2,fbittype)
     else:
         print( "  %s: Not supported pixel type. Please convert to 8, 16 Int, or 32 Float" % gdal.GetDataTypeName(iBand.DataType))
         sys.exit(1)
@@ -510,7 +524,8 @@ def main( argv = None ):
     # this method can only output 1 band... Would rather init and
     # then add bands one at a time...
     tofits = fits.PrimaryHDU(raster_data)
-    tofits.header['BLANK'] = int(dfNoData)
+    if fbittype >0:
+        tofits.header['BLANK'] = int(dfNoData)
     tofits.header['BZERO'] = iBand.GetOffset()
     tofits.header['BSCALE'] = iBand.GetScale()
     tofits.header['OBJECT'] = target
