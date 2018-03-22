@@ -38,7 +38,7 @@ import math
 import os
 import os.path
 #import re
-#import numpy as np
+import numpy as np
 
 #import astropy
 from astropy.io import fits
@@ -437,12 +437,8 @@ def main( argv = None ):
     #get the datatype
     if EQUAL(gdal.GetDataTypeName(iBand.DataType), "Float32"):
         fbittype = -32
-        if not dfNoData:
-            dfNoData = float('nan')
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "Float64"):
         fbittype = -64
-        if not dfNoData:
-            dfNoData = float('nan')
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "INT64"):
         fbittype = 64
         if not dfNoData:
@@ -523,6 +519,9 @@ def main( argv = None ):
 
     # this method can only output 1 band... Would rather init and
     # then add bands one at a time...
+    tofits = fits.PrimaryHDU(raster_data)
+    if (fbittype < 0):
+        raster_data[raster_data==dfNoData] = np.nan
     tofits = fits.PrimaryHDU(raster_data)
     if fbittype >0:
         tofits.header['BLANK'] = int(dfNoData)
