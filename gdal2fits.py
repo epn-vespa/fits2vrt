@@ -519,7 +519,6 @@ def main( argv = None ):
 
     # this method can only output 1 band... Would rather init and
     # then add bands one at a time...
-    tofits = fits.PrimaryHDU(raster_data)
     if (fbittype < 0):
         raster_data[raster_data==dfNoData] = np.nan
     tofits = fits.PrimaryHDU(raster_data)
