@@ -442,25 +442,25 @@ def main( argv = None ):
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "INT64"):
         fbittype = 64
         if not dfNoData:
-            dfNoData = math.pow(2,fbittype)
+            dfNoData = math.pow(2,fbittype) - 1 
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "INT32"):
         fbittype = 32
         if not dfNoData:
-            dfNoData = math.pow(2,fbittype)
+            dfNoData = math.pow(2,fbittype) - 1
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "INT16"):
         fbittype = 16
         if not dfNoData:
-            dfNoData = math.pow(2,fbittype)
+            dfNoData = math.pow(2,fbittype) - 1
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "UINT16"):
         fbittype = 16
         bzero = -32768
         bscale = 1
         if not dfNoData:
-            dfNoData = math.pow(2,fbittype)
+            dfNoData = math.pow(2,fbittype) - 1
     elif EQUAL(gdal.GetDataTypeName(iBand.DataType), "Byte"):
         fbittype = 8
         if not dfNoData:
-            dfNoData = math.pow(2,fbittype)
+            dfNoData = 0 
     else:
         print( "  %s: Not supported pixel type. Please convert to 8, 16 Int, or 32 Float" % gdal.GetDataTypeName(iBand.DataType))
         sys.exit(1)
