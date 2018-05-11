@@ -74,8 +74,12 @@ class fitskeys(object):
             dimz = 1
 
         # Scale and Offset
-        bzero = self.__header['BZERO']
-        bscale = self.__header['BSCALE']
+        try:
+            bzero = self.__header['BZERO']
+            bscale = self.__header['BSCALE']
+        except:
+            bzero = 0.0
+            bscale = 1.0
 
         """
         # Dataset bit type
